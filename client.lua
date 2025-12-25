@@ -1,70 +1,56 @@
-local MARKER_DISTANCE = 50.0
-local MARKER_SIZE = 0.75
-local MARKER_COLOR = {255, 255, 0, 100} -- RGBA
-local KEY = 38 -- KEY "E"
+local function teleportPlayer(coords)
+    local ped = PlayerPedId()
+    DoScreenFadeOut(500)
+    Wait(500)
+    SetEntityCoords(ped, coords.x, coords.y, coords.z)
+    SetEntityHeading(ped, coords.w or 0.0)
+    Wait(500)
+    DoScreenFadeIn(500)
+end
 
-local function DrawTeleportMarker(x, y, z)
-    DrawMarker(
-        1,
-        x, y, z - 1.0,
-        0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0,
-        MARKER_SIZE, MARKER_SIZE, MARKER_SIZE,
-        MARKER_COLOR[1], MARKER_COLOR[2], MARKER_COLOR[3], MARKER_COLOR[4],
-        false, true, 2, false, nil, nil, false
-    )
+local function registerTeleport(name, data)
+    exports.ox_target:addModel(data.enter.model, {
+        {
+            name = name .. "_enter",
+            label = "Enter " .. name,
+            icon = "fa-solid fa-door-open",
+            coords = data.enter.coords,
+            distance = 2.5,
+            onSelect = function()
+                teleportPlayer(data.teleportIn)
+            end
+        }
+    })
+
+    exports.ox_target:addModel(data.exit.model, {
+        {
+            name = name .. "_exit",
+            label = "Exit " .. name,
+            icon = "fa-solid fa-door-closed",
+            coords = data.exit.coords,
+            distance = 2.5,
+            onSelect = function()
+                teleportPlayer(data.teleportOut)
+            end
+        }
+    })
 end
 
 CreateThread(function()
-    while true do
-        local sleep = 1000
-        local ped = PlayerPedId()
-        local coords = GetEntityCoords(ped)
-
-        for name, tp in pairs(Config.Teleports) do
-            
-            local markIn  = vector3(tp.markin[1], tp.markin[2], tp.markin[3])
-            local markOut = vector3(tp.markout[1], tp.markout[2], tp.markout[3])
-            local locIn   = tp.locin
-            local locOut  = tp.locout
-
-            if #(coords - markIn) < MARKER_DISTANCE then
-                sleep = 0
-                DrawTeleportMarker(markIn.x, markIn.y, markIn.z)
-            end
-
-            if #(coords - markOut) < MARKER_DISTANCE then
-                sleep = 0
-                DrawTeleportMarker(markOut.x, markOut.y, markOut.z)
-            end
-
-            -- Teleport: Outside → Inside
-            if #(coords - markIn) < 1.5 then
-                sleep = 0
-                BeginTextCommandDisplayHelp("STRING")
-                AddTextComponentSubstringPlayerName("Press ~INPUT_CONTEXT~ to enter")
-                EndTextCommandDisplayHelp(0, false, true, -1)
-
-                if IsControlJustPressed(0, KEY) then
-                    SetEntityCoords(ped, locIn[1], locIn[2], locIn[3])
-                    if locIn[4] then SetEntityHeading(ped, locIn[4]) end
-                end
-            end
-
-            -- Teleport: Inside → Outside
-            if #(coords - markOut) < 1.5 then
-                sleep = 0
-                BeginTextCommandDisplayHelp("STRING")
-                AddTextComponentSubstringPlayerName("Press ~INPUT_CONTEXT~ to exit")
-                EndTextCommandDisplayHelp(0, false, true, -1)
-
-                if IsControlJustPressed(0, KEY) then
-                    SetEntityCoords(ped, locOut[1], locOut[2], locOut[3])
-                    if locOut[4] then SetEntityHeading(ped, locOut[4]) end
-                end
-            end
-        end
-
-        Wait(sleep)
+    for name, data in pairs(Config.Teleports) do
+        registerTeleport(name, data)
     end
+end)
+
+RegisterCommand('vector3', function()
+    local ped = PlayerPedId()
+    local pos = GetEntityCoords(ped)
+    print(string.format("vector3(%.4f, %.4f, %.4f)", pos.x, pos.y, pos.z))
+end)
+
+RegisterCommand('vector4', function()
+    local ped = PlayerPedId()
+    local pos = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+    print(string.format("vec4(%.4f, %.4f, %.4f, %.2f)", pos.x, pos.y, pos.z, heading))
 end)
