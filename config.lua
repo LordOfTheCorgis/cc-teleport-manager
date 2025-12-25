@@ -1,6 +1,13 @@
 Config = {}
 
 Config.Teleports = {
+    --[[
+    markin = The marker to get inside
+    markout = The marker to get out
+    locin = The location to spawn inside
+    locout = The location to spawn outside
+    ]]--
+    
     ["Doomsday Finale"] = {
         enter = {
             model = `xm_prop_x17_server_farm`,
